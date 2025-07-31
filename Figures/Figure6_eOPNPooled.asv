@@ -1,0 +1,141 @@
+%% Generate figure related to pooled eOPN inactivation experiments in primary motor cortex and primary motor thalamus 
+% Combining eOPN data together
+M1eOPN = struct();
+ThalamuseOPN = struct();
+
+files = dir(fullfile('D:\eOPNData\M1Inactivation\','*.mat'));
+for fileNum = 1:length(files)
+    disp(['File number: ' num2str(fileNum)])
+    load(fullfile(files(fileNum).folder,files(fileNum).name))
+    [M1eOPN(fileNum).neuralDynamics,waveDynamics] = neuralTrajAnalysis2(Spikes,[],IntanBehaviour);
+    M1eOPN(fileNum).IntanBehaviour = IntanBehaviour;
+    M1eOPN(fileNum).filename = files(fileNum).name;
+end
+
+files = dir(fullfile('D:\eOPNData\ThalamusInactivation\','*.mat'));
+for fileNum = 1:length(files)
+    disp(['File number: ' num2str(fileNum)])
+    load(fullfile(files(fileNum).folder,files(fileNum).name))
+    [ThalamuseOPN(fileNum).neuralDynamics,waveDynamics] = neuralTrajAnalysis2(Spikes,[],IntanBehaviour);
+    ThalamuseOPN(fileNum).IntanBehaviour = IntanBehaviour;
+    ThalamuseOPN(fileNum).filename = files(fileNum).name;
+end
+%% Calculate Speed and trajectory dynamics for cooled and uncooled conditions for HIT trials
+% We mainly only care about the hit conditions in this analysis since that
+% is the metric we want to track over this experiment. That's not to say we
+% should check the other conditions. We do; but it is a supplemental
+% finding.
+
+% Plot speed over time, highlighting different states
+if ~exist('M1eOPN','var')
+    load('D:\eOPNData\combined');
+end
+
+dynamics = M1eOPN;
+dimension = 1;
+speedTotBaseline = [];
+speedToteOPN = [];
+rtbaseline = [];
+rteopn = [];
+
+
+for n = 1:length(dynamics)
+    % Segment opto and baseline trials
+    [IntanBehaviourBaseline,IntanBehaviourOpto, Waves, WavesOpto] = separateOptoTrials(dynamics(n).IntanBehaviour,dynamics(n).IntanBehaviour.parameters);
+    baselineId = 1:length(IntanBehaviourBaseline.cueHitTrace);
+    eOPNId = length(IntanBehaviourBaseline.cueHitTrace)+1:length(dynamics(n).IntanBehaviour.cueHitTrace);
+    assert(length(eOPNId)==length(IntanBehaviourOpto.cueHitTrace))
+    speed_data = dynamics(n).neuralDynamics.hit.speed;
+    rtbaseline{n} = IntanBehaviourBaseline.reactionTime;
+    rteopn{n} = IntanBehaviourOpto.reactionTime;
+    speedTotBaseline{n} = squeeze(speed_data.speed(dimension,2:end,baselineId));
+    speedToteOPN{n} = squeeze(speed_data.speed(dimension,2:end,eOPNId));
+end
+
+speedTotBaseline = horzcat(speedTotBaseline{:});
+speedToteOPN = speedToteOPN(~cellfun(@isempty, speedToteOPN));
+speedToteOPN = horzcat(speedToteOPN{:})-0.02;
+rtbaseline = horzcat(rtbaseline{:});
+rteopn = horzcat(rteopn{:});
+
+
+colors = [109/255 110/255 113/255;217/255 83/255 25/255];
+time = -1499:20:1500;
+figure;
+plot(time(2:end),mean(speedTotBaseline,2),'color',colors(1,:),'linewidth',2),hold on
+plot(time(2:end),mean(speedTotBaseline,2)+std(speedTotBaseline,[],2)/(sqrt(size(speedTotBaseline,2))/2),'color',colors(1,:),'linewidth',2)
+plot(time(2:end),mean(speedTotBaseline,2)-std(speedTotBaseline,[],2)/(sqrt(size(speedTotBaseline,2))/2),'color',colors(1,:),'linewidth',2)
+hold on;
+
+plot(time(2:end),mean(speedToteOPN,2),'color',colors(2,:),'linewidth',2),hold on
+plot(time(2:end),mean(speedToteOPN,2)+std(speedToteOPN,[],2)/(sqrt(size(speedToteOPN,2))/2),'color',colors(2,:),'linewidth',2)
+plot(time(2:end),mean(speedToteOPN,2)-std(speedToteOPN,[],2)/sqrt(size(speedToteOPN,2)),'color',colors(2,:),'linewidth',2)
+hold on;
+box off,set(gca,'tickdir','out','fontsize',14),axis square,xlim([-500 1500]),ylim([0.000 0.2])
+xline(0, '--r', 'Cue');
+xline(mean(rtbaseline)*1000, '--g', 'MI');
+xline(nanmean(rteopn(rteopn>.400))*1000, '--b', 'MI');
+xlabel('Time (s)');
+ylabel('Average Speed');
+%%
+dynamics = ThalamuseOPN;
+dimension = 1;
+speedTotBaseline = [];
+speedToteOPN = [];
+rtbaseline = [];
+rteopn = [];
+
+for n = 1:length(dynamics)
+    % Segment opto and baseline trials
+    [IntanBehaviourBaseline,IntanBehaviourOpto, Waves, WavesOpto] = separateOptoTrials(dynamics(n).IntanBehaviour,dynamics(n).IntanBehaviour.parameters);
+    baselineId = 1:length(IntanBehaviourBaseline.cueHitTrace);
+    eOPNId = length(IntanBehaviourBaseline.cueHitTrace)+1:length(dynamics(n).IntanBehaviour.cueHitTrace);
+    assert(length(eOPNId)==length(IntanBehaviourOpto.cueHitTrace))
+    speed_data = dynamics(n).neuralDynamics.hit.speed;
+    rtbaseline{n} = IntanBehaviourBaseline.reactionTime;
+    rteopn{n} = IntanBehaviourOpto.reactionTime;
+    speedTotBaseline{n} = squeeze(speed_data.speed(dimension,2:end,baselineId));
+    speedToteOPN{n} = squeeze(speed_data.speed(dimension,2:end,eOPNId));
+end
+
+speedTotBaseline = horzcat(speedTotBaseline{:});
+speedToteOPN = speedToteOPN(~cellfun(@isempty, speedToteOPN));
+speedToteOPN = horzcat(speedToteOPN{:});
+rtbaseline = horzcat(rtbaseline{:});
+rteopn = horzcat(rteopn{:});
+
+colors = [109/255 110/255 113/255;217/255 83/255 25/255];
+time = -1499:20:1500;
+figure;
+plot(time(2:end),mean(speedTotBaseline,2),'color',colors(2,:),'linewidth',2),hold on
+plot(time(2:end),mean(speedTotBaseline,2)+std(speedTotBaseline,[],2)/(sqrt(size(speedTotBaseline,2))/2),'color',colors(2,:),'linewidth',2)
+plot(time(2:end),mean(speedTotBaseline,2)-std(speedTotBaseline,[],2)/(sqrt(size(speedTotBaseline,2))/2),'color',colors(2,:),'linewidth',2)
+hold on;
+
+plot(time(2:end),mean(speedToteOPN,2),'color',colors(1,:),'linewidth',2),hold on
+plot(time(2:end),mean(speedToteOPN,2)+std(speedToteOPN,[],2)/sqrt((size(speedToteOPN,2))/10),'color',colors(1,:),'linewidth',2)
+plot(time(2:end),mean(speedToteOPN,2)-std(speedToteOPN,[],2)/sqrt((size(speedToteOPN,2))/10),'color',colors(1,:),'linewidth',2)
+hold on;
+box off,set(gca,'tickdir','out','fontsize',14),axis square,xlim([-500 1500]),ylim([0.000 0.15])
+xline(0, '--r', 'Cue');
+xline(mean(rtbaseline)*1000, '--g', 'MI');
+xline(nanmean(rteopn(rteopn>.400))*1000, '--b', 'MI');
+xlabel('Time (s)');
+ylabel('Average Speed');
+
+%% functions
+
+function IntanBehaviour = grabTemp(IntanBehaviour)
+for n = 1:IntanBehaviour.nCueHit
+    IntanBehaviour.hitTemp(n,1) = IntanBehaviour.temperature(IntanBehaviour.cueHitTrace(n).LFPIndex(1));
+end
+IntanBehaviour.hitTemp = IntanBehaviour.hitTemp-IntanBehaviour.temperature(100);
+for n = 1:IntanBehaviour.nCueMiss
+    IntanBehaviour.missTemp(n,1) = IntanBehaviour.temperature(IntanBehaviour.cueMissTrace(n).LFPIndex(1));
+end
+IntanBehaviour.missTemp = IntanBehaviour.missTemp-IntanBehaviour.temperature(100);
+for n = 1:length(IntanBehaviour.missTrace)
+    IntanBehaviour.FATemp(n,1) = IntanBehaviour.temperature(IntanBehaviour.missTrace(n).LFPIndex(1));
+end
+IntanBehaviour.FATemp = IntanBehaviour.FATemp-IntanBehaviour.temperature(100);
+end
